@@ -48,7 +48,7 @@ class SessionsController < ApplicationController
         logger.debug("...done: #{email}")
 
         # authenticate by e-mail
-        authenticate_by_email? ? redirect_to(home_path) : render :text => "Unauthorized", :status => :unauthorized
+        authenticate_by_email? ? redirect_to(home_path) : render(:text => "Unauthorized", :status => :unauthorized)
 
       else
 
@@ -61,7 +61,7 @@ class SessionsController < ApplicationController
       # call from the login form
       # email should have been given on login form
       email = params[:open_id]
-      authenticated_by_email? ? redirect_to(home_path) : render :text => "Unauthorized", :status => :unauthorized
+      authenticated_by_email? ? redirect_to(home_path) : render(:text => "Unauthorized", :status => :unauthorized)
 
     end
 
