@@ -16,15 +16,17 @@ class SessionsController < ApplicationController
     logger.debug("Open ID is #{open_id}")
     if open_id.present?
       logger.debug("is present")
+      
       headers['WWW-Authenticate'] = Rack::OpenID.build_header(
           :identifier => open_id,
           :required => ["http://axschema.org/contact/email",
                         "http://axschema.org/namePerson/first",
                         "http://axschema.org/namePerson/last"],
-          :return_to => login_url,
-          :method => :post
+          :return_to => login_url(:only_path => false),
+          :method => 'post'
       )
-      render :nothing => true, :status => :unauthorized and return
+      logger.debug("headers: #{headers.inspect}")
+      render :nothing => true, :status => "401"
     end
   end
 
@@ -51,7 +53,7 @@ class SessionsController < ApplicationController
         logger.debug("...done: #{email}")
 
         # authenticate by e-mail
-        authenticate_by_email? ? redirect_to(home_path) : render(:text => "Unauthorized", :status => :unauthorized)
+        authenticate_by_email?(email) ? redirect_to(home_path) : render(:text => "Unauthorized", :status => :unauthorized)
 
       else
 
@@ -64,7 +66,7 @@ class SessionsController < ApplicationController
       # call from the login form
       # email should have been given on login form
       email = params[:open_id]
-      authenticated_by_email? ? redirect_to(home_path) : render(:text => "Unauthorized", :status => :unauthorized)
+      authenticate_by_email?(email) ? redirect_to(home_path) : render(:text => "Unauthorized", :status => :unauthorized)
 
     end
 
@@ -79,7 +81,7 @@ class SessionsController < ApplicationController
 
   private
 
-  def authenticate_by_email?
+  def authenticate_by_email?(email)
     user_found = User.find_by_email(email) if email.present?
     if user_found.present?
       session[:user_id] = user_found.id
