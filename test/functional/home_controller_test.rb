@@ -1,8 +1,12 @@
 require 'test_helper'
 
 class HomeControllerTest < ActionController::TestCase
-  # Replace this with your real tests.
-  test "the truth" do
-    assert true
+
+  test "routing" do
+
+    assert_recognizes({:controller => "home", :action => "support"}, "/support")
+    assert_generates("/support", {:controller => "home", :action => "support"})
+
   end
+
 end
