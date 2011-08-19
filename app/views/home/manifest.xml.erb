@@ -12,7 +12,7 @@
   <!-- Show this link in Google's universal navigation for all users -->
   <Extension id="navLink" type="link">
     <Name>Hello World</Name>
-    <Url><%= login_url(:only_path => false,  :openid_identifier=> '${DOMAIN_NAME}') %></Url>
+    <Url><%= login_url(:only_path => false,  :open_id=> '${DOMAIN_NAME}') %></Url>
     <Scope ref="calendarAPI"/>
   </Extension>
 
