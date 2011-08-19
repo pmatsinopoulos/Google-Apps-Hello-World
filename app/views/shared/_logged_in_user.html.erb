@@ -1,0 +1,4 @@
+<%= link_to "Logout", logout_path, :method => :post if current_user %>
+<% if current_user %>
+   <%= "User Id: #{current_user.id}" %>
+<% end %>
