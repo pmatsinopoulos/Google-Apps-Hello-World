@@ -1,11 +1,6 @@
-use Rack::Session::Cookie
-enable :sessions
-
 require 'gapps_openid'
 require 'rack/openid'
 require 'google_util'
-
-use Rack::OpenID
 
 class SessionsController < ApplicationController
   skip_before_filter :authenticate!, :only => [:create, :new, :destroy]
