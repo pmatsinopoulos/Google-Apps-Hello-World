@@ -1,0 +1,14 @@
+defaults: &defaults
+  google_apps_market:
+    consumer:
+      key: "319770045984.apps.googleusercontent.com"
+      secret: "Q8WLsvNh3ours3Em5DGBwSPd"
+
+development:
+  <<: *defaults
+
+test:
+  <<: *defaults
+
+production:
+  <<: *defaults

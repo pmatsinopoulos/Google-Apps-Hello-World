@@ -7,6 +7,10 @@ gem 'rails', '3.0.10'
 
 gem 'mysql2', '= 0.2.6'
 
+# For Google Apps Integration
+
+gem 'oauth'
+gem 'rack-openid'
 gem 'ruby-openid-apps-discovery'
 
 # Use unicorn as the web server
@@ -21,6 +25,7 @@ group :development, :test do
   # gem 'ruby-debug19', :require => 'ruby-debug'
 end
 
+gem 'settingslogic'
 
 # Bundle the extra gems:
 # gem 'bj'
