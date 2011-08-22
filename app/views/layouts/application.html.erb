@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GappsMplace</title>
+  <%= stylesheet_link_tag :all %>
+  <%= javascript_include_tag :defaults %>
+  <%= csrf_meta_tag %>
+</head>
+<body>
+
+<%= yield %>
+
+<div id="logged_in_user">
+    <%= render :partial => "shared/logged_in_user" %>
+</div>
+
+<div id="request_manifest">
+    <%= link_to "Request Application Manifest", "/manifest.xml"  %>
+</div>
+
+<div id="go_to_home_page">
+    <%= link_to "Home", home_path %>
+</div>
+
+</body>
+</html>
