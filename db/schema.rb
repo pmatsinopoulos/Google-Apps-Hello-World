@@ -13,8 +13,9 @@
 ActiveRecord::Schema.define(:version => 20110818143308) do
 
   create_table "users", :force => true do |t|
-    t.string   "email"
-    t.string   "open_id"
+    t.string   "email",                         :null => false
+    t.string   "open_id",                       :null => false
+    t.boolean  "admin_user", :default => false, :null => false
     t.datetime "created_at"
     t.datetime "updated_at"
   end

@@ -10,6 +10,8 @@ GappsMplace::Application.routes.draw do
     get "index"
     get "manifest"
     get "support"
+    get "setup"
+    post "setup_authentication_complete"
   end
 
   root :to => "home#index", :as => :home

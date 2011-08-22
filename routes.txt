@@ -1,7 +1,9 @@
-   login GET  /login(.:format)    {:controller=>"sessions", :action=>"new"}
-         POST /login(.:format)    {:controller=>"sessions", :action=>"create"}
-  logout POST /logout(.:format)   {:controller=>"sessions", :action=>"destroy"}
-   index GET  /index(.:format)    {:controller=>"home", :action=>"index"}
-manifest GET  /manifest(.:format) {:controller=>"home", :action=>"manifest"}
- support GET  /support(.:format)  {:controller=>"home", :action=>"support"}
-    home      /(.:format)         {:controller=>"home", :action=>"index"}
+                        login GET  /login(.:format)                         {:controller=>"sessions", :action=>"new"}
+                              POST /login(.:format)                         {:controller=>"sessions", :action=>"create"}
+                       logout POST /logout(.:format)                        {:controller=>"sessions", :action=>"destroy"}
+                        index GET  /index(.:format)                         {:controller=>"home", :action=>"index"}
+                     manifest GET  /manifest(.:format)                      {:controller=>"home", :action=>"manifest"}
+                      support GET  /support(.:format)                       {:controller=>"home", :action=>"support"}
+                        setup GET  /setup(.:format)                         {:controller=>"home", :action=>"setup"}
+setup_authentication_complete POST /setup_authentication_complete(.:format) {:controller=>"home", :action=>"setup_authentication_complete"}
+                         home      /(.:format)                              {:controller=>"home", :action=>"index"}
