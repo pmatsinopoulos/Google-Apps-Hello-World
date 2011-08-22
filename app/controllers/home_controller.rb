@@ -1,5 +1,8 @@
+require 'gapps_openid'
+require 'rack/openid'
+
 class HomeController < ApplicationController
-  skip_before_filter :authenticate!, :only => [:manifest, :support]
+  skip_before_filter :authenticate!, :only => [:manifest, :support, :setup, :setup_authentication_complete]
 
   def index
   end
@@ -25,6 +28,8 @@ class HomeController < ApplicationController
 
     callback = params[:callback]
 
+    logger.debug("Setup up start...callback is #{callback}")
+
     # get the admin user details and register him immediately
 
     # get the open id
@@ -34,7 +39,7 @@ class HomeController < ApplicationController
     headers['WWW-Authenticate'] = Rack::OpenID.build_header(
       :identifier => open_id,
       :required => ["http://axschema.org/contact/email"],
-      :return_to => setup_authentication_complete_url(:only_path => false),
+      :return_to => setup_authentication_complete_url(:only_path => false, :callback => callback, :open_id => open_id),
       :method => 'post'
     )
     logger.debug("headers: #{headers.inspect}")
@@ -47,13 +52,17 @@ class HomeController < ApplicationController
   # Thes is called when authentication of admin at setup step is complete
   def setup_authentication_complete
     logger.debug("setup authentication complete called")
-    logger.debug("Request inspect: #{request.inspect}")
-    logger.debug("Request params: #{params}")
+    logger.debug("Request params: #{params.inspect}")
+
+    callback = params[:callback]
+    logger.debug("Callback is #{callback}")
 
     resp = request.env["rack.openid.response"]
+
     if resp.present?
       if resp.status == :success
-        logger.debug("rack.openid.response is present and success: #{resp.inspect}")
+
+        logger.debug("Response from authentication is success")
 
         # we have the setup user successfully authenticated
         ax = OpenID::AX::FetchResponse.from_success_response(resp)
@@ -66,15 +75,14 @@ class HomeController < ApplicationController
         begin
           u.save!
           logger.debug("User saved successfully!")
-        rescue Exception ex
+        rescue Exception => ex
           logger.error "Error saving user"
           logger.error ex.message
-          logger.error ex.backtrace
         end
 
         # return to call back
         logger.debug "About to return to callback: #{params[:callback]}"
-        redirect_to params[:callback]
+        redirect_to callback
 
       end
     end
