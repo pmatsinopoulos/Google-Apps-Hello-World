@@ -1,5 +1,6 @@
 require 'gapps_openid'
 require 'rack/openid'
+require 'google_util'
 
 class HomeController < ApplicationController
   skip_before_filter :authenticate!, :only => [:manifest, :support, :setup, :setup_authentication_complete]
@@ -49,7 +50,7 @@ class HomeController < ApplicationController
 
   # POST /setup_authentication_complete
   #
-  # Thes is called when authentication of admin at setup step is complete
+  # This is called when authentication of admin at setup step is complete
   def setup_authentication_complete
     logger.debug("setup authentication complete called")
     logger.debug("Request params: #{params.inspect}")
@@ -85,6 +86,34 @@ class HomeController < ApplicationController
         redirect_to callback
 
       end
+    end
+
+  end
+
+  # GET /calendar
+  def calendar
+    # The call to /calendar has been authenticated. Hence, we have at session the user_id.
+    user = User.find(session[:user_id])
+    oauth_consumer = OAuth::Consumer.new(Settings.google_apps_market.consumer.key, Settings.google_apps_market.consumer.secret)
+    access_token = OAuth::AccessToken.new(oauth_consumer)
+    client = Google::Client.new(access_token, '2.0');
+    feed = client.get('https://www.google.com/calendar/feeds/default/private/full', {
+        'xoauth_requestor_id' => user.email,
+        'orderby' => 'starttime',
+        'singleevents' => 'true',
+        'sortorder' => 'a',
+        'start-min' => Time.now.strftime('%Y-%m-%dT%H:%M:%S')
+    })
+    render :text => "Unable to query calendar feed", :status => "500" and return if feed.nil?
+
+    @events = []
+    feed.elements.each('//entry') do |entry|
+      @events << {
+        :title => entry.elements["title"].text,
+        :content => entry.elements["content"].text,
+        :start_time => entry.elements["gd:when"].attribute("startTime").value,
+        :end_time => entry.elements["gd:when"].attribute("endTime").value
+      }
     end
 
   end

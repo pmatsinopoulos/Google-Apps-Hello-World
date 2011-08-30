@@ -12,6 +12,7 @@ GappsMplace::Application.routes.draw do
     get "support"
     get "setup"
     post "setup_authentication_complete"
+    get "calendar"
   end
 
   root :to => "home#index", :as => :home
