@@ -1,0 +1,14 @@
+defaults: &defaults
+  google_apps_market:
+    consumer:
+      key: "<put your application consumer key here>"
+      secret: "<put your application consumer secret key here>"
+
+development:
+  <<: *defaults
+
+test:
+  <<: *defaults
+
+production:
+  <<: *defaults
