@@ -1,0 +1,9 @@
+.bundle
+db/*.sqlite3
+log/
+tmp/
+config/database.yml
+config/gapps_mplace.yml
+vendor/bundle/
+.idea/
+*.iml

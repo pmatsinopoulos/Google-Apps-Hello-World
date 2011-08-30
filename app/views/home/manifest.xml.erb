@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<ApplicationManifest xmlns="http://schemas.google.com/ApplicationManifest/2009">
+  <Name>Hello World</Name>
+  <Description>Demonstrates a simple Google Apps Marketplace application</Description>
+
+  <Support>
+    <Link rel="support" href="<%= support_url(:only_path => false) %>" />
+    <Link rel="setup" href="<%= URI.unescape(setup_url(:only_path => false, :open_id => '${DOMAIN_NAME}')) %>" />
+  </Support>
+
+  <Extension id="navLink" type="link">
+    <Name>Hello World</Name>
+    <% # TODO: Note on the url construction below. I use URI.unescape because I want the rendered view to have '${DOMAIN_NAME}' literally and  %>
+    <% #       not escaped as the 'login_url' does by default.                                                                                 %>
+    <% #       More on this:                                                                                                                   %>
+    <% #       I want the URL to be presented literally as (example) http://www.fraudpointer.com/login?open_id=${DOMAIN_NAME} in the manifest  %>
+    <% #       output/rendering, so that the one who copies / pastes that in Google Apps Markeplace Application Registration has the correct   %>
+    <% #       (as Google Apps Marketplace Application Registration wants it) format. The escaping that 'login_url' does, is not adequate. The %>
+    <% #       question is whether we can tell login_url not to escape                                                                         %>
+    <Url><%= URI.unescape(login_url(:only_path => false, :open_id => '${DOMAIN_NAME}')) %></Url>
+    <Scope ref="calendarAPI"/>
+  </Extension>
+
+  <Extension id="realm" type="openIdRealm">
+    <Url><%= home_url(:only_path => false) %></Url>
+  </Extension>
+
+  <Scope id="calendarAPI">
+    <Url>https://www.google.com/calendar/feeds/</Url>
+    <Reason>This app displays the user's next upcoming Google Calendar appointment.</Reason>
+  </Scope>
+
+</ApplicationManifest>
+

@@ -1,0 +1,17 @@
+<section>
+    <p>
+    Upcoming calendar events:
+    <ul id="event_list">
+        <% @events.each do |event| %>
+        <li class="event">
+            <span class="event_attr">Title: <%= event[:title] %></span>
+            <span class="event_attr">Content: <%= event[:content] %></span>
+            <span class="event_attr">Start Time: <%= event[:start_time] %></span>
+        </li><% end %>
+    </ul>
+    </p>
+    <% if @events.empty? %>
+      <p>You have no scheduled events.</p>
+    <% end %>
+</section>
+
