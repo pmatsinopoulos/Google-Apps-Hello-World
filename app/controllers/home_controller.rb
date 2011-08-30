@@ -1,6 +1,8 @@
 require 'gapps_openid'
 require 'rack/openid'
 require 'google_util'
+require 'net/http'
+require 'uri'
 
 class HomeController < ApplicationController
   skip_before_filter :authenticate!, :only => [:manifest, :support, :setup, :setup_authentication_complete]
@@ -125,11 +127,17 @@ class HomeController < ApplicationController
 
     callback_url = display_organization_name_url(:only_path => false)
 
-    oauth_consumer = OAuth::Consumer.new(Settings.google_apps_market.consumer.key, Settings.google_apps_market.consumer.secret)
-
-    request_token = oauth_consumer.get_request_token(:oauth_callback => callback_url)
-    session[:request_token] = request_token
-    redirect_to request_token.authorize_url(:oauth_callback => callback_url)
+    #oauth_consumer = OAuth::Consumer.new(Settings.google_apps_market.consumer.key, Settings.google_apps_market.consumer.secret)
+    #
+    #request_token = oauth_consumer.get_request_token(:oauth_callback => callback_url)
+    #session[:request_token] = request_token
+    #redirect_to request_token.authorize_url(:oauth_callback => callback_url)
+    url = URI.parse("https://www.google.com/accounts/OAuthGetRequestToken")
+    req = Net::HTTP::Get.new(url.path)
+    res = Net::HTTP.start(url.host, url.port) {|http|
+      http.request(req)
+    }
+    logger.debug("Response body: #{res.body}")
 
   end
 
