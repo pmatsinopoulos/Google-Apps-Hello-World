@@ -127,18 +127,58 @@ class HomeController < ApplicationController
 
     callback_url = display_organization_name_url(:only_path => false)
 
+    consumer_key = Settings.google_apps_market.consumer.key
+    consumer_secret = Settings.google_apps_market.consumer.secret
+
     #oauth_consumer = OAuth::Consumer.new(Settings.google_apps_market.consumer.key, Settings.google_apps_market.consumer.secret)
     #
     #request_token = oauth_consumer.get_request_token(:oauth_callback => callback_url)
     #session[:request_token] = request_token
     #redirect_to request_token.authorize_url(:oauth_callback => callback_url)
-    url = URI.parse("https://www.google.com/accounts/OAuthGetRequestToken")
-    req = Net::HTTP::Get.new(url.path)
-    res = Net::HTTP.start(url.host, url.port) {|http|
-      http.request(req)
-    }
+
+    nonce = generate_nonce
+    get_request_token_url = "https://www.google.com/accounts/OAuthGetRequestToken"
+    scope = "https://apps-apis.google.com/a/feeds/domain/"
+    oauth_timestamp = Time.now.to_i
+    logger.debug("Timestamp: #{oauth_timestamp}")
+    base_string = ["GET", escape(get_request_token_url),
+                    ["oauth_callback%3D#{escape(callback_url)}",
+                     "oauth_consumer_key%3D#{URI.escape(consumer_key)}",
+                     "oauth_nonce%3D#{nonce}",
+                     "oauth_signature_method%3DHMAC-SHA1",
+                     "oauth_timestamp%3D#{oauth_timestamp}",
+                     "scope%3D#{escape(scope)}"].join('%26') ].join('&')
+    oauth_signature = generate_signature(escape(consumer_secret), base_string)
+    logger.debug("Nonce: #{nonce}")
+    logger.debug("Signature: #{oauth_signature}")
+    url = URI.parse("#{get_request_token_url}?".concat([
+        "oauth_callback=#{escape(callback_url)}",
+        "oauth_consumer_key=#{consumer_key}",
+        "oauth_nonce=#{nonce}",
+        "oauth_signature_method=HMAC-SHA1",
+        "oauth_signature=#{URI.escape(oauth_signature)}",
+        "oauth_timestamp=#{oauth_timestamp}",
+        "scope=#{escape(scope)}" ].join('&')))
+    http = Net::HTTP.new(url.host, url.port)
+    http.use_ssl = true
+    req = Net::HTTP::Get.new(url.request_uri)
+    res = http.request(req)
     logger.debug("Response body: #{res.body}")
 
+  end
+
+  def escape(value)
+    URI.escape(value, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]"))
+  end
+
+  def generate_nonce
+    rand(10 ** 30).to_s.rjust(30,'0')
+  end
+
+  def generate_signature(key, base_string)
+    digest = OpenSSL::Digest::Digest.new('sha1')
+    hmac = OpenSSL::HMAC.digest(digest, key, base_string )
+    Base64.encode64(hmac).chomp.gsub(/\n/, '')
   end
 
   def display_organization_name
