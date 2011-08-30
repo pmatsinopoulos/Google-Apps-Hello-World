@@ -118,4 +118,35 @@ class HomeController < ApplicationController
 
   end
 
+  def organization_name
+
+    # The call to /calendar has been authenticated. Hence, we have at session the user_id.
+    user = User.find(session[:user_id])
+
+    callback_url = display_organization_name_url(:only_path => false)
+
+    oauth_consumer = OAuth::Consumer.new(Settings.google_apps_market.consumer.key, Settings.google_apps_market.consumer.secret)
+
+    request_token = oauth_consumer.get_request_token(:oauth_callback => callback_url)
+    session[:request_token] = request_token
+    redirect_to request_token.authorize_url(:oauth_callback => callback_url)
+
+  end
+
+  def display_organization_name
+    request_token = session[:request_token]
+    access_token = request_token.get_access_token
+
+    client = Google::Client.new(access_token, '2.0')
+    feed = client.get('https://apps-apis.google.com/a/feeds/domain/2.0/fraudpointer.com/general/organizationName', {
+        'xoauth_requestor_id' => user.email
+    })
+    render :text => "Unable to query organization feed", :status => "500" and return if feed.nil?
+
+    @events = []
+    feed.elements.each('//entry') do |entry|
+      @events << entry
+    end
+  end
+
 end
