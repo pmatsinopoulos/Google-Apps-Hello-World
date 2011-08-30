@@ -7,4 +7,6 @@
                         setup GET  /setup(.:format)                         {:controller=>"home", :action=>"setup"}
 setup_authentication_complete POST /setup_authentication_complete(.:format) {:controller=>"home", :action=>"setup_authentication_complete"}
                      calendar GET  /calendar(.:format)                      {:controller=>"home", :action=>"calendar"}
+            organization_name GET  /organization_name(.:format)             {:controller=>"home", :action=>"organization_name"}
+    display_organization_name GET  /display_organization_name(.:format)     {:controller=>"home", :action=>"display_organization_name"}
                          home      /(.:format)                              {:controller=>"home", :action=>"index"}
