@@ -125,10 +125,7 @@ class HomeController < ApplicationController
 
     callback_url = display_organization_name_url(:only_path => false)
 
-    consumer_key = ApplicationConfiguration.find_by_name("gapps_mplace_consumer_key").value
-    consumer_secret_key = ApplicationConfiguration.find_by_name("gapps_mplace_consumer_secret_key").value
-
-    oauth_consumer = OAuth::Consumer.new(consumer_key, consumer_secret_key)
+    oauth_consumer = OAuth::Consumer.new(Settings.google_apps_market.consumer.key, Settings.google_apps_market.consumer.secret)
 
     request_token = oauth_consumer.get_request_token(:oauth_callback => callback_url)
     session[:request_token] = request_token
