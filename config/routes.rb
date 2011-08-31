@@ -15,6 +15,7 @@ GappsMplace::Application.routes.draw do
     get "calendar"
     get "organization_name"
     get "display_organization_name"
+    get "user_info"
   end
 
   root :to => "home#index", :as => :home

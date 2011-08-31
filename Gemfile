@@ -13,6 +13,8 @@ gem 'oauth'
 gem 'rack-openid'
 gem 'ruby-openid-apps-discovery'
 
+gem 'httpclient'
+
 # Use unicorn as the web server
 # gem 'unicorn'
 

@@ -1,8 +1,7 @@
 require 'gapps_openid'
 require 'rack/openid'
 require 'google_util'
-require 'net/http'
-require 'uri'
+require 'oauth_util'
 
 class HomeController < ApplicationController
   skip_before_filter :authenticate!, :only => [:manifest, :support, :setup, :setup_authentication_complete]
@@ -122,7 +121,6 @@ class HomeController < ApplicationController
 
   def organization_name
 
-    # The call to /calendar has been authenticated. Hence, we have at session the user_id.
     user = User.find(session[:user_id])
 
     callback_url = display_organization_name_url(:only_path => false)
@@ -130,71 +128,153 @@ class HomeController < ApplicationController
     consumer_key = Settings.google_apps_market.consumer.key
     consumer_secret = Settings.google_apps_market.consumer.secret
 
-    #oauth_consumer = OAuth::Consumer.new(Settings.google_apps_market.consumer.key, Settings.google_apps_market.consumer.secret)
-    #
-    #request_token = oauth_consumer.get_request_token(:oauth_callback => callback_url)
-    #session[:request_token] = request_token
-    #redirect_to request_token.authorize_url(:oauth_callback => callback_url)
-
-    nonce = generate_nonce
     get_request_token_url = "https://www.google.com/accounts/OAuthGetRequestToken"
     scope = "https://apps-apis.google.com/a/feeds/domain/"
-    oauth_timestamp = Time.now.to_i
-    logger.debug("Timestamp: #{oauth_timestamp}")
-    base_string = ["GET", escape(get_request_token_url),
-                    ["oauth_callback%3D#{escape(callback_url)}",
-                     "oauth_consumer_key%3D#{URI.escape(consumer_key)}",
-                     "oauth_nonce%3D#{nonce}",
-                     "oauth_signature_method%3DHMAC-SHA1",
-                     "oauth_timestamp%3D#{oauth_timestamp}",
-                     "scope%3D#{escape(scope)}"].join('%26') ].join('&')
-    oauth_signature = generate_signature(escape(consumer_secret), base_string)
-    logger.debug("Nonce: #{nonce}")
-    logger.debug("Signature: #{oauth_signature}")
-    url = URI.parse("#{get_request_token_url}?".concat([
-        "oauth_callback=#{escape(callback_url)}",
-        "oauth_consumer_key=#{consumer_key}",
-        "oauth_nonce=#{nonce}",
+
+    oauth_util = OauthUtil.new
+
+    parsed_url = URI.parse("#{get_request_token_url}?".concat([
+        "oauth_callback=#{oauth_util.percent_encode(callback_url)}",
+        "oauth_consumer_key=#{oauth_util.percent_encode(consumer_key)}",
         "oauth_signature_method=HMAC-SHA1",
-        "oauth_signature=#{URI.escape(oauth_signature)}",
-        "oauth_timestamp=#{oauth_timestamp}",
-        "scope=#{escape(scope)}" ].join('&')))
-    http = Net::HTTP.new(url.host, url.port)
+        "scope=#{oauth_util.percent_encode(scope)}" ].join('&')))
+
+    oauth_util.consumer_key = consumer_key
+    oauth_util.consumer_secret = consumer_secret
+    with_signature = oauth_util.sign(parsed_url).query_string
+    logger.debug("With signature: #{with_signature}")
+
+    http = Net::HTTP.new(parsed_url.host, parsed_url.port)
     http.use_ssl = true
-    req = Net::HTTP::Get.new(url.request_uri)
+    req = Net::HTTP::Get.new("#{parsed_url.path}?#{with_signature}")
     res = http.request(req)
+
     logger.debug("Response body: #{res.body}")
+    logger.debug("Response inspect: #{res.inspect}")
 
-  end
+    if res.is_a?(Net::HTTPSuccess)
+      # let us get
+      # 1) oauth_token
+      # 2) oauth_token_secret
+      # 3) oauth_callback_confirmed
+      response_values = Hash.new
+      res.body.split('&').each{ |e| response_values[ e.split('=')[0] ] = URI.unescape(e.split('=')[1]) }
+      logger.debug("Oauth token = #{response_values['oauth_token']}")
+      logger.debug("Oauth token secret = #{response_values['oauth_token_secret']}")
+      logger.debug("Oauth callback confirmed = #{response_values['oauth_callback_confirmed']}")
 
-  def escape(value)
-    URI.escape(value, Regexp.new("[^#{URI::PATTERN::UNRESERVED}]"))
-  end
+      # do the OAuthAuthorizeToken
+      authorize_token_url = "https://www.google.com/accounts/OAuthAuthorizeToken?oauth_token=#{URI.escape(response_values['oauth_token'])}"
+      # save oauth_token_secret in session
+      session[:oauth_token_secret] = response_values['oauth_token_secret']
 
-  def generate_nonce
-    rand(10 ** 30).to_s.rjust(30,'0')
-  end
+      redirect_to authorize_token_url
 
-  def generate_signature(key, base_string)
-    digest = OpenSSL::Digest::Digest.new('sha1')
-    hmac = OpenSSL::HMAC.digest(digest, key, base_string )
-    Base64.encode64(hmac).chomp.gsub(/\n/, '')
+    else
+        res.error!
+    end
+
   end
 
   def display_organization_name
-    request_token = session[:request_token]
-    access_token = request_token.get_access_token
 
-    client = Google::Client.new(access_token, '2.0')
-    feed = client.get('https://apps-apis.google.com/a/feeds/domain/2.0/fraudpointer.com/general/organizationName', {
-        'xoauth_requestor_id' => user.email
-    })
-    render :text => "Unable to query organization feed", :status => "500" and return if feed.nil?
+    user = User.find(session[:user_id])
 
-    @events = []
-    feed.elements.each('//entry') do |entry|
-      @events << entry
+    oauth_token = params[:oauth_token]
+    oauth_verifier = params[:oauth_verifier]
+    oauth_token_secret = session[:oauth_token_secret]
+
+    # will call the get access token
+    consumer_key = Settings.google_apps_market.consumer.key
+    consumer_secret = Settings.google_apps_market.consumer.secret
+
+    get_access_token_url = "https://www.google.com/accounts/OAuthGetAccessToken"
+
+    oauth_util = OauthUtil.new
+
+    parsed_url = URI.parse("#{get_access_token_url}?".concat([
+        "oauth_consumer_key=#{oauth_util.percent_encode(consumer_key)}",
+        "oauth_token=#{oauth_util.percent_encode(oauth_token)}",
+        "oauth_verifier=#{oauth_util.percent_encode(oauth_verifier)}",
+        "oauth_signature_method=HMAC-SHA1"
+         ].join('&')))
+
+    oauth_util.consumer_key = consumer_key
+    oauth_util.consumer_secret = consumer_secret
+    oauth_util.token_secret = oauth_token_secret
+    with_signature = oauth_util.sign(parsed_url).query_string
+    logger.debug("With signature: #{with_signature}")
+
+    http = Net::HTTP.new(parsed_url.host, parsed_url.port)
+    http.use_ssl = true
+    all_get_url = "#{parsed_url.path}?#{with_signature}"
+    logger.debug("All get url: #{all_get_url}")
+    req = Net::HTTP::Get.new(all_get_url)
+    res = http.request(req)
+
+    logger.debug("Response body: #{res.body}")
+    logger.debug("Response inspect: #{res.inspect}")
+
+    if res.is_a?(Net::HTTPSuccess)
+      response_values = Hash.new
+      res.body.split('&').each{ |e| response_values[ e.split('=')[0] ] = URI.unescape(e.split('=')[1]) }
+      logger.debug("Oauth token = #{response_values['oauth_token']}")
+      logger.debug("Oauth token secret = #{response_values['oauth_token_secret']}")
+
+      get_domain_organization_name_url = "https://apps-apis.google.com/a/feeds/domain/2.0/fraudpointer.com/general/organizationName"
+      oauth_util = OauthUtil.new
+      parsed_url = URI.parse("#{get_domain_organization_name_url}?".concat([
+        "oauth_signature_method=HMAC-SHA1",
+        "oauth_token=#{oauth_util.percent_encode(response_values['oauth_token'])}" ].join('&')))
+      oauth_util.consumer_key = consumer_key
+      oauth_util.consumer_secret = consumer_secret
+      oauth_util.token_secret = oauth_token_secret
+      with_signature = oauth_util.sign(parsed_url).query_string
+      logger.debug("With signature: #{with_signature}")
+
+      http = Net::HTTP.new(parsed_url.host, parsed_url.port)
+      http.use_ssl = true
+      req = Net::HTTP::Get.new("#{parsed_url.path}?#{with_signature}")
+      res = http.request(req)
+
+      logger.debug("Response body: #{res.body}")
+      logger.debug("Response inspect: #{res.inspect}")
+
+      @events = []
+      feed.elements.each('//entry') do |entry|
+        @events << entry
+      end
+
+    else
+      res.error!
     end
+
+  end
+
+  def user_info
+    user = User.find(session[:user_id])
+
+    email = user.email
+    consumer_key = Settings.google_apps_market.consumer.key
+    consumer_secret = Settings.google_apps_market.consumer.secret
+
+    url = "https://apps-apis.google.com/a/feeds/customer/2.0/customerId?xoauth_requestor_id=#{URI.escape(email)}"
+    parsed_url = URI.parse(url)
+
+    consumer = OAuth::Consumer.new(consumer_key, consumer_secret)
+    method = "get"
+    oauth_params = {:consumer => consumer, :method => method, :request_uri => parsed_url.to_s}
+
+    http = Net::HTTP.new(parsed_url.host, parsed_url.port)
+    http.use_ssl = (parsed_url.port == 443)
+    req = Net::HTTP::Get.new(parsed_url.request_uri)
+    oauth_helper = OAuth::Client::Helper.new(req, oauth_params)
+    req.initialize_http_header(headers.merge({'Authorization' => oauth_helper.header}))
+
+    res = http.request(req)
+    logger.debug("Response body: #{res.body}")
+    logger.debug("Response: #{res}")
+
   end
 
 end

@@ -20,7 +20,7 @@
     <% #       question is whether we can tell login_url not to escape                                                                         %>
     <Url><%= URI.unescape(login_url(:only_path => false, :open_id => '${DOMAIN_NAME}')) %></Url>
     <Scope ref="calendarAPI" />
-    <Scope ref="domainAPI" />
+    <Scope ref="provisioningAPI" />
   </Extension>
 
   <Extension id="realm" type="openIdRealm">
@@ -31,9 +31,9 @@
     <Url>https://www.google.com/calendar/feeds/</Url>
     <Reason>This app displays the user's next upcoming Google Calendar appointment.</Reason>
   </Scope>
-  <Scope id="domainAPI">
-    <Url>https://apps-apis.google.com/a/feeds/domain/</Url>
-    <Reason>This app wants to access admin settings.</Reason>
+  <Scope id="provisioningAPI">
+    <Url>https://apps-apis.google.com/a/feeds/user/#readonly</Url>
+    <Reason>This app wants to access user info.</Reason>
   </Scope>
 
 </ApplicationManifest>
